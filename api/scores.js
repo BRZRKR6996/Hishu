@@ -3,8 +3,15 @@
 // GET  /api/scores?board=daily&day=YYYY-MM-DD
 // POST /api/scores { name, score, board, day }
 // Needs an Upstash Redis database connected to the Vercel project (Storage tab).
-const DB_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const DB_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+// Finds the Upstash REST credentials whatever prefix Vercel gave them (KV_, STORAGE_, UPSTASH_REDIS_, ...).
+function findEnv(suffix) {
+  const env = process.env;
+  for (const k of ['KV_' + suffix, 'UPSTASH_REDIS_' + suffix, 'STORAGE_' + suffix, 'STORAGE_KV_' + suffix]) if (env[k]) return env[k];
+  const hit = Object.keys(env).find(k => k.endsWith('_' + suffix) && !k.includes('READ_ONLY') && env[k]);
+  return hit ? env[hit] : undefined;
+}
+const DB_URL = findEnv('REST_API_URL') || findEnv('REST_URL');
+const DB_TOKEN = findEnv('REST_API_TOKEN') || findEnv('REST_TOKEN');
 
 async function redis(cmd) {
   const r = await fetch(DB_URL, {
